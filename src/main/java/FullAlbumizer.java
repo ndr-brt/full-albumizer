@@ -86,32 +86,30 @@ public class FullAlbumizer {
 
         muxer.open(null, null);
 
-        final MediaPacket audioPacket = MediaPacket.make();
-        final MediaPacket videoPacket = MediaPacket.make();
+        final MediaPacket packet = MediaPacket.make();
         converter.toPicture(picture, bufferedImage, 0);
-        encoder.encode(videoPacket, picture);
-        while(audioMuxer.read(audioPacket) >= 0) {
+        encoder.encodeVideo(packet, picture);
+        while(audioMuxer.read(packet) >= 0) {
             int offset = 0;
             int bytesRead = 0;
             do {
-                bytesRead += audioDecoder.decode(samples, audioPacket, offset);
+                bytesRead += audioDecoder.decode(samples, packet, offset);
 
-                aEncoder.encodeAudio(audioPacket, samples);
+                aEncoder.encodeAudio(packet, samples);
 
                 offset += bytesRead;
 
-                if (audioPacket.isComplete())
-                    muxer.write(audioPacket, false);
+                if (packet.isComplete())
+                    muxer.write(packet, false);
 
-            } while (offset < audioPacket.getSize());
+            } while (offset < packet.getSize());
         }
 
         do {
-            encoder.encodeVideo(audioPacket, null);
-            aEncoder.encodeAudio(videoPacket, null);
-            if (audioPacket.isComplete())
-                muxer.write(audioPacket,  false);
-        } while (audioPacket.isComplete());
+            encoder.encodeVideo(packet, null);
+            if (packet.isComplete())
+                muxer.write(packet,  false);
+        } while (packet.isComplete());
 
         muxer.close();
 
