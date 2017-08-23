@@ -37,18 +37,18 @@ public class FullAlbumizer {
 
         PixelFormat.Type pixelFormat = PIX_FMT_YUV420P;
         final Codec codec = Codec.findEncodingCodec(CODEC_ID_MPEG2VIDEO);
-        Encoder encoder = Encoder.make(codec);
-        encoder.setWidth(bufferedImage.getWidth());
-        encoder.setHeight(bufferedImage.getHeight());
-        encoder.setPixelFormat(pixelFormat);
-        encoder.setTimeBase(framerate);
+        Encoder videoEncoder = Encoder.make(codec);
+        videoEncoder.setWidth(bufferedImage.getWidth());
+        videoEncoder.setHeight(bufferedImage.getHeight());
+        videoEncoder.setPixelFormat(pixelFormat);
+        videoEncoder.setTimeBase(framerate);
 
-        encoder.open(null, null);
+        videoEncoder.open(null, null);
 
 
         final MediaPicture picture = MediaPicture.make(
-                encoder.getWidth(),
-                encoder.getHeight(),
+                videoEncoder.getWidth(),
+                videoEncoder.getHeight(),
                 pixelFormat);
         picture.setTimeBase(framerate);
 
@@ -62,10 +62,10 @@ public class FullAlbumizer {
         DemuxerStream stream = audioMuxer.getStream(0);
         Decoder audioDecoder = stream.getDecoder();
         Codec audioCodec = Codec.findEncodingCodec(audioDecoder.getCodecID());
-        Encoder aEncoder = Encoder.make(audioCodec);
-        aEncoder.setSampleRate(audioDecoder.getSampleRate());
-        aEncoder.setChannelLayout(audioDecoder.getChannelLayout());
-        aEncoder.setSampleFormat(audioDecoder.getSampleFormat());
+        Encoder audioEncoder = Encoder.make(audioCodec);
+        audioEncoder.setSampleRate(audioDecoder.getSampleRate());
+        audioEncoder.setChannelLayout(audioDecoder.getChannelLayout());
+        audioEncoder.setSampleFormat(audioDecoder.getSampleFormat());
 
         audioDecoder.open(null, null);
 
@@ -77,25 +77,25 @@ public class FullAlbumizer {
                 audioDecoder.getSampleFormat()
         );
 
-        aEncoder.open(null, null);
+        audioEncoder.open(null, null);
 
         File album = new File(folder, "album.mpeg");
         final Muxer muxer = Muxer.make(album.getAbsolutePath(), null, null);
-        muxer.addNewStream(encoder);
-        muxer.addNewStream(aEncoder);
+        muxer.addNewStream(videoEncoder);
+        muxer.addNewStream(audioEncoder);
 
         muxer.open(null, null);
 
         final MediaPacket packet = MediaPacket.make();
         converter.toPicture(picture, bufferedImage, 0);
-        encoder.encodeVideo(packet, picture);
+        videoEncoder.encodeVideo(packet, picture);
         while(audioMuxer.read(packet) >= 0) {
             int offset = 0;
             int bytesRead = 0;
             do {
                 bytesRead += audioDecoder.decode(samples, packet, offset);
 
-                aEncoder.encodeAudio(packet, samples);
+                audioEncoder.encodeAudio(packet, samples);
 
                 offset += bytesRead;
 
@@ -106,7 +106,7 @@ public class FullAlbumizer {
         }
 
         do {
-            encoder.encodeVideo(packet, null);
+            videoEncoder.encodeVideo(packet, null);
             if (packet.isComplete())
                 muxer.write(packet,  false);
         } while (packet.isComplete());
