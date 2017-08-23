@@ -25,16 +25,13 @@ public class FullAlbumizer {
       */
 
     public static void main(String[] args) throws IOException, InterruptedException {
-
         String folderPath = "/home/andrea/Music/Rituals, The - 2009 - Celebrate Life";
 
         File folder = new File(folderPath);
-        File album = new File(folder, "album.mpeg");
 
         File image = Arrays.stream(folder.listFiles())
                 .filter(JPEG_FILE).findFirst().get();
 
-        final Muxer muxer = Muxer.make(album.getAbsolutePath(), null, null);
         final Rational framerate = Rational.make(1, 1);
         final BufferedImage bufferedImage = ImageIO.read(image);
 
@@ -82,6 +79,8 @@ public class FullAlbumizer {
 
         aEncoder.open(null, null);
 
+        File album = new File(folder, "album.mpeg");
+        final Muxer muxer = Muxer.make(album.getAbsolutePath(), null, null);
         muxer.addNewStream(encoder);
         muxer.addNewStream(aEncoder);
 
