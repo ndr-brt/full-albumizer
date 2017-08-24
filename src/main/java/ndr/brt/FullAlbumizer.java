@@ -1,3 +1,5 @@
+package ndr.brt;
+
 import io.humble.video.*;
 import io.humble.video.awt.MediaPictureConverter;
 import io.humble.video.awt.MediaPictureConverterFactory;
@@ -57,45 +59,26 @@ public class FullAlbumizer {
         List<File> songs = Arrays.stream(folder.listFiles())
                 .filter(MP3_FILE).collect(toList());
 
-        Demuxer audioMuxer = Demuxer.make();
-        audioMuxer.open(songs.get(0).getAbsolutePath(), null, false, true, null, null);
-        DemuxerStream stream = audioMuxer.getStream(0);
-        Decoder audioDecoder = stream.getDecoder();
-        Codec audioCodec = Codec.findEncodingCodec(audioDecoder.getCodecID());
-        Encoder audioEncoder = Encoder.make(audioCodec);
-        audioEncoder.setSampleRate(audioDecoder.getSampleRate());
-        audioEncoder.setChannelLayout(audioDecoder.getChannelLayout());
-        audioEncoder.setSampleFormat(audioDecoder.getSampleFormat());
-
-        audioDecoder.open(null, null);
-
-        MediaAudio samples = MediaAudio.make(
-                audioDecoder.getFrameSize(),
-                audioDecoder.getSampleRate(),
-                audioDecoder.getChannels(),
-                audioDecoder.getChannelLayout(),
-                audioDecoder.getSampleFormat()
-        );
-
-        audioEncoder.open(null, null);
+        AudioHandler audio = new AudioHandler(songs.get(0));
+        audio.open();
 
         File album = new File(folder, "album.mpeg");
         final Muxer muxer = Muxer.make(album.getAbsolutePath(), null, null);
         muxer.addNewStream(videoEncoder);
-        muxer.addNewStream(audioEncoder);
+        muxer.addNewStream(audio.encoder());
 
         muxer.open(null, null);
 
         final MediaPacket packet = MediaPacket.make();
         converter.toPicture(picture, bufferedImage, 0);
         videoEncoder.encodeVideo(packet, picture);
-        while(audioMuxer.read(packet) >= 0) {
+        while(audio.thereIsDataToReadTo(packet)) {
             int offset = 0;
             int bytesRead = 0;
             do {
-                bytesRead += audioDecoder.decode(samples, packet, offset);
 
-                audioEncoder.encodeAudio(packet, samples);
+                bytesRead += audio.decode(packet, offset);
+                audio.encode(packet);
 
                 offset += bytesRead;
 
