@@ -24,6 +24,10 @@ public class FullAlbumizer {
     public static void main(String[] args) throws IOException, InterruptedException {
         String folderPath = "/home/andrea/Music/Rituals, The - 2009 - Celebrate Life";
 
+        albumize(folderPath);
+    }
+
+    private static void albumize(String folderPath) throws IOException, InterruptedException {
         File folder = new File(folderPath);
 
         File image = Arrays.stream(folder.listFiles())
@@ -70,7 +74,6 @@ public class FullAlbumizer {
         } while (packet.isComplete());
 
         muxer.close();
-
     }
 
 }
