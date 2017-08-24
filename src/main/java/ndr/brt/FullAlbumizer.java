@@ -74,13 +74,9 @@ public class FullAlbumizer {
         videoEncoder.encodeVideo(packet, picture);
         while(audio.thereIsDataToReadTo(packet)) {
             int offset = 0;
-            int bytesRead = 0;
             do {
-
-                bytesRead += audio.decode(packet, offset);
+                offset += audio.decode(packet, offset);
                 audio.encode(packet);
-
-                offset += bytesRead;
 
                 if (packet.isComplete())
                     muxer.write(packet, false);
@@ -91,7 +87,7 @@ public class FullAlbumizer {
         do {
             videoEncoder.encodeVideo(packet, null);
             if (packet.isComplete())
-                muxer.write(packet,  false);
+                muxer.write(packet, false);
         } while (packet.isComplete());
 
         muxer.close();
