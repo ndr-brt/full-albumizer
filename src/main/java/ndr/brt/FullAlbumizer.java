@@ -1,11 +1,7 @@
 package ndr.brt;
 
 import io.humble.video.*;
-import io.humble.video.awt.MediaPictureConverter;
-import io.humble.video.awt.MediaPictureConverterFactory;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -34,27 +30,18 @@ public class FullAlbumizer {
         File image = Arrays.stream(folder.listFiles())
                 .filter(JPEG_FILE).findFirst().get();
 
-        final Rational framerate = Rational.make(1, 1);
-        final BufferedImage bufferedImage = ImageIO.read(image);
-
         PixelFormat.Type pixelFormat = PIX_FMT_YUV420P;
+
+        final MediaPicture picture = PictureFactory.picture(image, pixelFormat);
+
         final Codec codec = Codec.findEncodingCodec(CODEC_ID_MPEG2VIDEO);
         Encoder videoEncoder = Encoder.make(codec);
-        videoEncoder.setWidth(bufferedImage.getWidth());
-        videoEncoder.setHeight(bufferedImage.getHeight());
+        videoEncoder.setWidth(picture.getWidth());
+        videoEncoder.setHeight(picture.getHeight());
         videoEncoder.setPixelFormat(pixelFormat);
-        videoEncoder.setTimeBase(framerate);
+        videoEncoder.setTimeBase(Rational.make(1, 1));
 
         videoEncoder.open(null, null);
-
-
-        final MediaPicture picture = MediaPicture.make(
-                videoEncoder.getWidth(),
-                videoEncoder.getHeight(),
-                pixelFormat);
-        picture.setTimeBase(framerate);
-
-        MediaPictureConverter converter = MediaPictureConverterFactory.createConverter(bufferedImage, picture);
 
         List<File> songs = Arrays.stream(folder.listFiles())
                 .filter(MP3_FILE).collect(toList());
@@ -70,7 +57,6 @@ public class FullAlbumizer {
         muxer.open(null, null);
 
         final MediaPacket packet = MediaPacket.make();
-        converter.toPicture(picture, bufferedImage, 0);
         videoEncoder.encodeVideo(packet, picture);
         while(audio.thereIsDataToReadTo(packet)) {
             int offset = 0;
