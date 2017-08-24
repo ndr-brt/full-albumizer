@@ -8,7 +8,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 
-import static io.humble.video.Codec.ID.CODEC_ID_MPEG2VIDEO;
 import static io.humble.video.PixelFormat.Type.PIX_FMT_YUV420P;
 import static java.util.stream.Collectors.toList;
 
@@ -34,13 +33,7 @@ public class FullAlbumizer {
 
         final MediaPicture picture = PictureFactory.picture(image, pixelFormat);
 
-        final Codec codec = Codec.findEncodingCodec(CODEC_ID_MPEG2VIDEO);
-        Encoder videoEncoder = Encoder.make(codec);
-        videoEncoder.setWidth(picture.getWidth());
-        videoEncoder.setHeight(picture.getHeight());
-        videoEncoder.setPixelFormat(pixelFormat);
-        videoEncoder.setTimeBase(Rational.make(1, 1));
-
+        Encoder videoEncoder = VideoEncoderFactory.videoEncoder(pixelFormat, picture);
         videoEncoder.open(null, null);
 
         List<File> songs = Arrays.stream(folder.listFiles())
@@ -50,10 +43,10 @@ public class FullAlbumizer {
         audio.open();
 
         File album = new File(folder, "album.mpeg");
+
         final Muxer muxer = Muxer.make(album.getAbsolutePath(), null, null);
         muxer.addNewStream(videoEncoder);
         muxer.addNewStream(audio.encoder());
-
         muxer.open(null, null);
 
         final MediaPacket packet = MediaPacket.make();
