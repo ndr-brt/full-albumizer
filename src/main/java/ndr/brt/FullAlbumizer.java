@@ -1,79 +1,86 @@
 package ndr.brt;
 
-import io.humble.video.*;
+import net.bramp.ffmpeg.FFmpeg;
+import net.bramp.ffmpeg.FFmpegExecutor;
+import net.bramp.ffmpeg.FFprobe;
+import net.bramp.ffmpeg.builder.FFmpegBuilder;
 
-import java.io.File;
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.Arrays;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static io.humble.video.PixelFormat.Type.PIX_FMT_YUV420P;
+import static java.nio.file.Files.probeContentType;
+import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 
 public class FullAlbumizer {
 
-    private static final Predicate<File> JPEG_FILE = file -> file.getName().endsWith(".jpg");
-    private static final Predicate<File> MP3_FILE = file -> file.getName().endsWith(".mp3");
+    private static final Function<String, String> escapeQuotes = p -> p.replace("\'", "\'\\\'\'");
 
-    /*
-     good example:
-     https://github.com/artclarke/humble-video/blob/master/humble-video-demos/src/main/java/io/humble/video/demos/RecordAndEncodeVideo.java
-      */
+    private static final Function<String, String> prepareRow = p -> "file '".concat(p).concat("'");
 
-    public static void main(String[] args) throws IOException, InterruptedException {
-        String folderPath = "/home/andrea/Music/Rituals, The - 2009 - Celebrate Life";
+    private static Predicate<? super Path> audioFiles = path -> {
+        try {
+            return probeContentType(path).startsWith("audio");
+        } catch (IOException e) {
+            return false;
+        }
+    };
 
-        albumize(folderPath);
+    public static void main(String[] args) throws IOException {
+        FFmpeg ffmpeg = new FFmpeg(sh("which ffmpeg"));
+        FFprobe ffprobe = new FFprobe(sh("which ffprobe"));
+
+        Path folder = Paths.get("/home/andrea/Music/Rituals, The - 2009 - Celebrate Life/");
+        Path songsFile = folder.resolve("songs");
+        Path audioOutput = folder.resolve("audioOutput.mp3");
+
+        List<String> songs = Files.walk(folder)
+                .filter(audioFiles)
+                .map(Path::toAbsolutePath)
+                .map(Path::toString)
+                .sorted()
+                .map(escapeQuotes)
+                .map(prepareRow)
+                .collect(toList());
+
+        Files.write(songsFile, songs);
+
+        FFmpegBuilder builder = new FFmpegBuilder()
+                .addExtraArgs("-f", "concat")
+                .addExtraArgs("-safe", "0")
+                .addInput(songsFile.toString())
+                .addOutput(audioOutput.toString())
+                .done();
+
+        FFmpegExecutor executor = new FFmpegExecutor(ffmpeg, ffprobe);
+
+        executor.createJob(builder).run();
+
+        //executor.createTwoPassJob(builder).run();
+
+
+
     }
 
-    private static void albumize(String folderPath) throws IOException, InterruptedException {
-        File folder = new File(folderPath);
-
-        File image = Arrays.stream(folder.listFiles())
-                .filter(JPEG_FILE).findFirst().get();
-
-        PixelFormat.Type pixelFormat = PIX_FMT_YUV420P;
-
-        final MediaPicture picture = PictureFactory.picture(image, pixelFormat);
-
-        Encoder videoEncoder = VideoEncoderFactory.videoEncoder(pixelFormat, picture);
-        videoEncoder.open(null, null);
-
-        List<File> songs = Arrays.stream(folder.listFiles())
-                .filter(MP3_FILE).collect(toList());
-
-        AudioHandler audio = new AudioHandler(songs.get(0));
-        audio.open();
-
-        File album = new File(folder, "album.mpeg");
-
-        final Muxer muxer = Muxer.make(album.getAbsolutePath(), null, null);
-        muxer.addNewStream(videoEncoder);
-        muxer.addNewStream(audio.encoder());
-        muxer.open(null, null);
-
-        final MediaPacket packet = MediaPacket.make();
-        videoEncoder.encodeVideo(packet, picture);
-        while(audio.thereIsDataToReadTo(packet)) {
-            int offset = 0;
-            do {
-                offset += audio.decode(packet, offset);
-                audio.encode(packet);
-
-                if (packet.isComplete())
-                    muxer.write(packet, false);
-
-            } while (offset < packet.getSize());
+    private static String sh(String command) {
+        try (
+            InputStream stream = new ProcessBuilder().command(asList("sh", "-c", command)).start().getInputStream();
+            InputStreamReader inputReader = new InputStreamReader(stream);
+            BufferedReader reader = new BufferedReader(inputReader)
+        ) {
+            return reader.readLine();
         }
-
-        do {
-            videoEncoder.encodeVideo(packet, null);
-            if (packet.isComplete())
-                muxer.write(packet, false);
-        } while (packet.isComplete());
-
-        muxer.close();
+         catch (Exception e) {
+            throw new RuntimeException(e);
+         }
     }
 
 }

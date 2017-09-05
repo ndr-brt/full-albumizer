@@ -1,7 +1,5 @@
 # Full Albumizer
-Just playing with Humble Video library
+Just playing...
 
 ##TODO
-* A simple integration test
-* Make it work with more than one song
-* Command line invokation handling 
+* Attach image to audio
