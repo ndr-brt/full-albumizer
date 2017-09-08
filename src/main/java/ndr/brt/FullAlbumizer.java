@@ -23,16 +23,18 @@ import static java.util.stream.Collectors.toList;
 public class FullAlbumizer {
 
     private static final Function<String, String> escapeQuotes = p -> p.replace("\'", "\'\\\'\'");
-
     private static final Function<String, String> prepareRow = p -> "file '".concat(p).concat("'");
+    private static final Predicate<? super Path> audioFiles = path -> type(path, "audio");
+    private static final Predicate<? super Path> imageFiles = path -> type(path, "image");
 
-    private static Predicate<? super Path> audioFiles = path -> {
+    private static boolean type(Path path, String type) {
         try {
-            return probeContentType(path).startsWith("audio");
+            return probeContentType(path).startsWith(type);
         } catch (IOException e) {
             return false;
         }
-    };
+    }
+
 
     public static void main(String[] args) throws IOException {
         FFmpeg ffmpeg = new FFmpeg(sh("which ffmpeg"));
@@ -41,6 +43,7 @@ public class FullAlbumizer {
         Path folder = Paths.get("/home/andrea/Music/Rituals, The - 2009 - Celebrate Life/");
         Path songsFile = folder.resolve("songs");
         Path audioOutput = folder.resolve("audioOutput.mp3");
+        Path videoOutput = folder.resolve("videoOutput.mp4");
 
         List<String> songs = Files.walk(folder)
                 .filter(audioFiles)
@@ -51,23 +54,33 @@ public class FullAlbumizer {
                 .map(prepareRow)
                 .collect(toList());
 
+        Path image = Files.walk(folder)
+                .filter(imageFiles)
+                .map(Path::toAbsolutePath)
+                .findFirst()
+                .get();
+
         Files.write(songsFile, songs);
 
-        FFmpegBuilder builder = new FFmpegBuilder()
+        FFmpegBuilder concatAudio = new FFmpegBuilder()
                 .addExtraArgs("-f", "concat")
                 .addExtraArgs("-safe", "0")
                 .addInput(songsFile.toString())
                 .addOutput(audioOutput.toString())
+                .addExtraArgs("-c", "copy")
                 .done();
 
         FFmpegExecutor executor = new FFmpegExecutor(ffmpeg, ffprobe);
 
-        executor.createJob(builder).run();
+        FFmpegBuilder audioVideo = new FFmpegBuilder()
+                .addInput(audioOutput.toString())
+                .addInput(image.toString())
+                .addExtraArgs("-vcodec", "mjpeg")
+                .addOutput(videoOutput.toString())
+                .done();
 
-        //executor.createTwoPassJob(builder).run();
-
-
-
+        executor.createJob(concatAudio).run();
+        executor.createJob(audioVideo).run();
     }
 
     private static String sh(String command) {
