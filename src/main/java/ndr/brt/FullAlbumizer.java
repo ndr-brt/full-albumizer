@@ -75,8 +75,9 @@ public class FullAlbumizer {
         FFmpegBuilder audioVideo = new FFmpegBuilder()
                 .addInput(audioOutput.toString())
                 .addInput(image.toString())
-                .addExtraArgs("-vcodec", "mjpeg")
                 .addOutput(videoOutput.toString())
+                .addExtraArgs("-vcodec", "mjpeg")
+                .addExtraArgs("-acodec", "copy")
                 .done();
 
         executor.createJob(concatAudio).run();
