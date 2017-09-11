@@ -9,11 +9,13 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static java.nio.file.Files.delete;
 import static java.util.Arrays.asList;
 import static ndr.brt.AudioConcatenator.audioConcatenator;
 import static ndr.brt.VideoMaker.videoMaker;
@@ -29,12 +31,13 @@ public class FullAlbumizer {
 
     private static void albumize(String path) {
         Path audioOutput = null;
+        Path videoOutput = null;
         try {
             FFmpeg ffmpeg = new FFmpeg(sh("which ffmpeg"));
             FFprobe ffprobe = new FFprobe(sh("which ffprobe"));
 
             Path folder = Paths.get(path);
-            Path videoOutput = folder.resolve("album.mkv");
+            videoOutput = folder.resolve("album.mkv");
 
             FFmpegExecutor executor = new FFmpegExecutor(ffmpeg, ffprobe);
 
@@ -50,11 +53,16 @@ public class FullAlbumizer {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            /*try {
-                delete(audioOutput);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }*/
+            deleteQuietly(audioOutput);
+            deleteQuietly(videoOutput);
+        }
+    }
+
+    private static void deleteQuietly(Path audioOutput) {
+        try {
+            delete(audioOutput);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
