@@ -9,13 +9,11 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import static java.nio.file.Files.delete;
 import static java.util.Arrays.asList;
 import static ndr.brt.AudioConcatenator.audioConcatenator;
 import static ndr.brt.VideoMaker.videoMaker;
@@ -29,25 +27,35 @@ public class FullAlbumizer {
         albumize(commandLine.getArgs()[0]);
     }
 
-    private static void albumize(String path) throws IOException {
-        FFmpeg ffmpeg = new FFmpeg(sh("which ffmpeg"));
-        FFprobe ffprobe = new FFprobe(sh("which ffprobe"));
+    private static void albumize(String path) {
+        Path audioOutput = null;
+        try {
+            FFmpeg ffmpeg = new FFmpeg(sh("which ffmpeg"));
+            FFprobe ffprobe = new FFprobe(sh("which ffprobe"));
 
-        Path folder = Paths.get(path);
-        Path videoOutput = folder.resolve("album.mp4");
+            Path folder = Paths.get(path);
+            Path videoOutput = folder.resolve("album.mkv");
 
-        FFmpegExecutor executor = new FFmpegExecutor(ffmpeg, ffprobe);
+            FFmpegExecutor executor = new FFmpegExecutor(ffmpeg, ffprobe);
 
-        Path audioOutput = audioConcatenator(executor)
-                .folder(folder)
-                .concatenate();
+            audioOutput = audioConcatenator(executor)
+                    .folder(folder)
+                    .concatenate();
 
-        videoMaker(executor)
-                .audio(audioOutput)
-                .images(folder)
-                .make(videoOutput);
+            videoMaker(executor)
+                    .audio(audioOutput)
+                    .images(folder)
+                    .make(videoOutput);
 
-        delete(audioOutput);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            /*try {
+                delete(audioOutput);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }*/
+        }
     }
 
     private static String sh(String command) {

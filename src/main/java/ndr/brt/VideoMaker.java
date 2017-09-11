@@ -41,13 +41,21 @@ public class VideoMaker {
                     .findFirst()
                     .get();
 
+            //ffmpeg -loop 1 -framerate 2 -i input.png -i audio.m4a -c:v libx264 -preset medium -tune stillimage -crf 18 -c:a copy -shortest -pix_fmt yuv420p output.mkv
 
             FFmpegBuilder audioVideo = new FFmpegBuilder()
-                    .addInput(audio.toString())
+                    .addExtraArgs("-loop", "1")
+                    .addExtraArgs("-framerate", "2")
                     .addInput(image.toString())
+                    .addInput(audio.toString())
                     .addOutput(output.toString())
-                    .addExtraArgs("-vcodec", "mjpeg")
-                    .addExtraArgs("-acodec", "copy")
+                    .addExtraArgs("-c:v", "libx264")
+                    .addExtraArgs("-preset", "medium")
+                    .addExtraArgs("-tune", "stillimage")
+                    .addExtraArgs("-crf", "18")
+                    .addExtraArgs("-c:a", "copy")
+                    .addExtraArgs("-shortest")
+                    .addExtraArgs("-pix_fmt", "yuv420p")
                     .done();
 
             executor.createJob(audioVideo).run();
