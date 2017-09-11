@@ -51,10 +51,10 @@ public class FullAlbumizer {
                     .make(videoOutput);
 
         } catch (Exception e) {
+            deleteQuietly(videoOutput);
             e.printStackTrace();
         } finally {
             deleteQuietly(audioOutput);
-            deleteQuietly(videoOutput);
         }
     }
 
