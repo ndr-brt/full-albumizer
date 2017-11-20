@@ -38,6 +38,7 @@ public class VideoMaker {
             Path image = Files.walk(images)
                     .filter(imageFiles)
                     .map(Path::toAbsolutePath)
+                    .sorted()
                     .findFirst()
                     .get();
 
