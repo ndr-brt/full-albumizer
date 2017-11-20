@@ -52,6 +52,7 @@ public class AudioConcatenator {
             Files.write(songsFile, songs);
 
             FFmpegBuilder concatAudio = new FFmpegBuilder()
+                    .addExtraArgs("-loglevel", "panic")
                     .addExtraArgs("-f", "concat")
                     .addExtraArgs("-safe", "0")
                     .addInput(songsFile.toString())

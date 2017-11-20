@@ -1,5 +1,6 @@
 package ndr.brt;
 
+import me.tongfei.progressbar.ProgressBar;
 import net.bramp.ffmpeg.FFmpeg;
 import net.bramp.ffmpeg.FFmpegExecutor;
 import net.bramp.ffmpeg.FFprobe;
@@ -32,29 +33,39 @@ public class FullAlbumizer {
     private static void albumize(String path) {
         Path audioOutput = null;
         Path videoOutput = null;
+        final ProgressBar progress = new ProgressBar("Albumize", 3).start();
         try {
-            FFmpeg ffmpeg = new FFmpeg(sh("which ffmpeg"));
-            FFprobe ffprobe = new FFprobe(sh("which ffprobe"));
+
+            progress.step();
+
+            FFmpegExecutor executor = new FFmpegExecutor(
+                    new FFmpeg(sh("which ffmpeg")),
+                    new FFprobe(sh("which ffprobe"))
+            );
+
+            progress.step();
 
             Path folder = Paths.get(path);
-            videoOutput = folder.resolve("album.mkv");
-
-            FFmpegExecutor executor = new FFmpegExecutor(ffmpeg, ffprobe);
-
             audioOutput = audioConcatenator(executor)
                     .folder(folder)
                     .concatenate();
 
+            progress.step();
+
+            videoOutput = folder.resolve("album.mkv");
             videoMaker(executor)
                     .audio(audioOutput)
                     .images(folder)
                     .make(videoOutput);
+
+            progress.step();
 
         } catch (Exception e) {
             deleteQuietly(videoOutput);
             e.printStackTrace();
         } finally {
             deleteQuietly(audioOutput);
+            progress.stop();
         }
     }
 
