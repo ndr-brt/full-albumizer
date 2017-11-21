@@ -10,6 +10,5 @@ mvn compile exec:java -Dexec.mainClass="ndr.brt.FullAlbumizer" -Dexec.args="'<pa
 ```
 
 ##TODO
-* Handle the "width not divisible by 2 (597x600)" problem
 * Eventually download cover image from the internet
 * Handle progress

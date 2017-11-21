@@ -42,8 +42,6 @@ public class VideoMaker {
                     .findFirst()
                     .get();
 
-            //ffmpeg -loop 1 -framerate 2 -i input.png -i audio.m4a -c:v libx264 -preset medium -tune stillimage -crf 18 -c:a copy -shortest -pix_fmt yuv420p output.mkv
-
             FFmpegBuilder audioVideo = new FFmpegBuilder()
                     .addExtraArgs("-loop", "1")
                     .addExtraArgs("-framerate", "2")
@@ -57,6 +55,7 @@ public class VideoMaker {
                     .addExtraArgs("-c:a", "copy")
                     .addExtraArgs("-shortest")
                     .addExtraArgs("-pix_fmt", "yuv420p")
+                    .addExtraArgs("-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2")
                     .done();
 
             executor.createJob(audioVideo).run();
