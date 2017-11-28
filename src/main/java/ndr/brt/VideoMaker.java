@@ -67,20 +67,21 @@ public class VideoMaker {
             final Double duration = getDuration.apply(audio);
 
             ProgressBar progress = new ProgressBar("Video making", duration.longValue());
+
             progress.start();
-
-            executor.createJob(audioVideo, p -> progress
-                        .stepTo(valueOf(p.out_time_ns)
-                                .divide(valueOf(1000000000))
-                                .longValue()))
-                    .run();
-
+            executor.createJob(audioVideo, p -> progress.stepTo(toSeconds(p.out_time_ns))).run();
             progress.stop();
 
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
+    }
+
+    private long toSeconds(long out_time_ns) {
+        return valueOf(out_time_ns)
+                .divide(valueOf(1000000000))
+                .longValue();
     }
 
     private static final Predicate<? super Path> imageFiles = path -> {
