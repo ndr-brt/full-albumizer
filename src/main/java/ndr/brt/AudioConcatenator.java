@@ -22,12 +22,12 @@ public class AudioConcatenator {
     private final FFmpegExecutor executor;
     private Path folder;
 
-    public AudioConcatenator(FFmpegExecutor executor) {
-        this.executor = executor;
+    static AudioConcatenator audioConcatenator(FFmpegExecutor executor) {
+        return new AudioConcatenator(executor);
     }
 
-    public static AudioConcatenator audioConcatenator(FFmpegExecutor executor) {
-        return new AudioConcatenator(executor);
+    private AudioConcatenator(FFmpegExecutor executor) {
+        this.executor = executor;
     }
 
     public AudioConcatenator folder(Path folder) {

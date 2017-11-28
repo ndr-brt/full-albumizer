@@ -1,5 +1,6 @@
 package ndr.brt;
 
+import me.tongfei.progressbar.ProgressBar;
 import net.bramp.ffmpeg.FFmpegExecutor;
 import net.bramp.ffmpeg.builder.FFmpegBuilder;
 
@@ -8,19 +9,23 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.function.Predicate;
 
+import static java.math.BigInteger.valueOf;
 import static java.nio.file.Files.probeContentType;
 
 public class VideoMaker {
+
     private final FFmpegExecutor executor;
+    private final GetDuration getDuration;
     private Path audio;
     private Path images;
 
-    public static VideoMaker videoMaker(FFmpegExecutor executor) {
-        return new VideoMaker(executor);
+    public static VideoMaker videoMaker(FFmpegExecutor executor, GetDuration getDuration) {
+        return new VideoMaker(executor, getDuration);
     }
 
-    public VideoMaker(FFmpegExecutor executor) {
+    public VideoMaker(FFmpegExecutor executor, GetDuration getDuration) {
         this.executor = executor;
+        this.getDuration = getDuration;
     }
 
     public VideoMaker audio(Path audio) {
@@ -58,7 +63,19 @@ public class VideoMaker {
                     .addExtraArgs("-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2")
                     .done();
 
-            executor.createJob(audioVideo).run();
+
+            final Double duration = getDuration.apply(audio);
+
+            ProgressBar progress = new ProgressBar("Video making", duration.longValue());
+            progress.start();
+
+            executor.createJob(audioVideo, p -> progress
+                        .stepTo(valueOf(p.out_time_ns)
+                                .divide(valueOf(1000000000))
+                                .longValue()))
+                    .run();
+
+            progress.stop();
 
         } catch (IOException e) {
             throw new RuntimeException(e);
