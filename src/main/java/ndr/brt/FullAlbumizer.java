@@ -9,9 +9,10 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -41,6 +42,9 @@ public class FullAlbumizer {
             );
 
             Path folder = Paths.get(path);
+            if (!Files.exists(folder)) {
+                throw new NoSuchFileException("Path '" + folder + "' does not exists");
+            }
             audioOutput = audioConcatenator(executor)
                     .folder(folder)
                     .concatenate();
@@ -53,17 +57,17 @@ public class FullAlbumizer {
 
         } catch (Exception e) {
             deleteQuietly(videoOutput);
-            e.printStackTrace();
+            System.err.println(e);
         } finally {
             deleteQuietly(audioOutput);
         }
     }
 
-    private static void deleteQuietly(Path audioOutput) {
+    private static void deleteQuietly(Path file) {
         try {
-            delete(audioOutput);
-        } catch (IOException e) {
-            e.printStackTrace();
+            if (file != null) delete(file);
+        } catch (Exception e) {
+            System.out.printf("File %s non estente\n", file);
         }
     }
 

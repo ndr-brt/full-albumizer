@@ -7,6 +7,7 @@ import net.bramp.ffmpeg.builder.FFmpegBuilder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.NoSuchElementException;
 import java.util.function.Predicate;
 
 import static java.math.BigInteger.valueOf;
@@ -45,7 +46,7 @@ public class VideoMaker {
                     .map(Path::toAbsolutePath)
                     .sorted()
                     .findFirst()
-                    .get();
+                    .orElseThrow(() -> new NoSuchElementException("Folder does not contains any image file"));
 
             FFmpegBuilder audioVideo = new FFmpegBuilder()
                     .addExtraArgs("-loop", "1")

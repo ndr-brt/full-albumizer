@@ -60,7 +60,8 @@ public class AudioConcatenator {
                     .addExtraArgs("-c", "copy")
                     .done();
 
-            executor.createJob(concatAudio).run();
+            //ProgressBar progress = new ProgressBar("Audio concatenation", duration.longValue());
+            executor.createJob(concatAudio, System.out::println).run();
 
             delete(songsFile);
 
