@@ -5,7 +5,6 @@ import net.bramp.ffmpeg.FFmpegExecutor;
 import net.bramp.ffmpeg.builder.FFmpegBuilder;
 
 import java.io.IOException;
-import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -16,6 +15,7 @@ import java.util.function.ToLongFunction;
 import static java.nio.file.Files.delete;
 import static java.nio.file.Files.probeContentType;
 import static java.util.stream.Collectors.toList;
+import static ndr.brt.GetSize.getSize;
 
 public class AudioConcatenator {
 
@@ -24,14 +24,6 @@ public class AudioConcatenator {
 
     private final FFmpegExecutor executor;
     private Path folder;
-    private final ToLongFunction<Path> getSize = p -> {
-        try (final FileChannel channel = FileChannel.open(p)) {
-            return channel.size();
-        }
-        catch (Exception e) {
-            return 0;
-        }
-    };
 
     static AudioConcatenator audioConcatenator(FFmpegExecutor executor) {
         return new AudioConcatenator(executor);
@@ -52,7 +44,7 @@ public class AudioConcatenator {
 
             Long totalSize = Files.walk(folder)
                     .filter(audioFiles)
-                    .mapToLong(getSize)
+                    .mapToLong(getSize())
                     .sum();
 
             List<String> songs = Files.walk(folder)
