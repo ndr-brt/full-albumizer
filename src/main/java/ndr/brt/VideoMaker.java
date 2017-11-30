@@ -71,6 +71,7 @@ public class VideoMaker {
 
             progress.start();
             executor.createJob(audioVideo, p -> progress.stepTo(toSeconds(p.out_time_ns))).run();
+            progress.stepTo(duration.longValue());
             progress.stop();
 
         } catch (IOException e) {

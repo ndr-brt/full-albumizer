@@ -1,14 +1,17 @@
 package ndr.brt;
 
+import me.tongfei.progressbar.ProgressBar;
 import net.bramp.ffmpeg.FFmpegExecutor;
 import net.bramp.ffmpeg.builder.FFmpegBuilder;
 
 import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.ToLongFunction;
 
 import static java.nio.file.Files.delete;
 import static java.nio.file.Files.probeContentType;
@@ -21,6 +24,14 @@ public class AudioConcatenator {
 
     private final FFmpegExecutor executor;
     private Path folder;
+    private final ToLongFunction<Path> getSize = p -> {
+        try (final FileChannel channel = FileChannel.open(p)) {
+            return channel.size();
+        }
+        catch (Exception e) {
+            return 0;
+        }
+    };
 
     static AudioConcatenator audioConcatenator(FFmpegExecutor executor) {
         return new AudioConcatenator(executor);
@@ -37,8 +48,12 @@ public class AudioConcatenator {
 
     public Path concatenate() {
         try {
-            Path songsFile = folder.resolve("songs");
             Path audioOutput = folder.resolve("audioOutput.mp3");
+
+            Long totalSize = Files.walk(folder)
+                    .filter(audioFiles)
+                    .mapToLong(getSize)
+                    .sum();
 
             List<String> songs = Files.walk(folder)
                     .filter(audioFiles)
@@ -49,6 +64,7 @@ public class AudioConcatenator {
                     .map(prepareRow)
                     .collect(toList());
 
+            Path songsFile = folder.resolve("songs");
             Files.write(songsFile, songs);
 
             FFmpegBuilder concatAudio = new FFmpegBuilder()
@@ -60,8 +76,11 @@ public class AudioConcatenator {
                     .addExtraArgs("-c", "copy")
                     .done();
 
-            //ProgressBar progress = new ProgressBar("Audio concatenation", duration.longValue());
-            executor.createJob(concatAudio, System.out::println).run();
+            ProgressBar progress = new ProgressBar("Audio concatenation", totalSize);
+            progress.start();
+            executor.createJob(concatAudio, p -> progress.stepTo(p.total_size)).run();
+            progress.stepTo(totalSize);
+            progress.stop();
 
             delete(songsFile);
 
