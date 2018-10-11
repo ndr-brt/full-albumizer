@@ -67,12 +67,10 @@ public class VideoMaker {
 
             final Double duration = getDuration.apply(audio);
 
-            ProgressBar progress = new ProgressBar("Video making", duration.longValue());
-
-            progress.start();
-            executor.createJob(audioVideo, p -> progress.stepTo(toSeconds(p.out_time_ns))).run();
-            progress.stepTo(duration.longValue());
-            progress.stop();
+            try (ProgressBar progress = new ProgressBar("Video making", duration.longValue())) {
+                executor.createJob(audioVideo, p -> progress.stepTo(toSeconds(p.out_time_ns))).run();
+                progress.stepTo(duration.longValue());
+            }
 
         } catch (IOException e) {
             throw new RuntimeException(e);

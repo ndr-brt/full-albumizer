@@ -68,11 +68,10 @@ public class AudioConcatenator {
                     .addExtraArgs("-c", "copy")
                     .done();
 
-            ProgressBar progress = new ProgressBar("Audio concatenation", totalSize);
-            progress.start();
-            executor.createJob(concatAudio, p -> progress.stepTo(p.total_size)).run();
-            progress.stepTo(totalSize);
-            progress.stop();
+            try (ProgressBar progress = new ProgressBar("Audio concatenation", totalSize)) {
+                executor.createJob(concatAudio, p -> progress.stepTo(p.total_size)).run();
+                progress.stepTo(totalSize);
+            }
 
             delete(songsFile);
 
