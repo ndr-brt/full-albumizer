@@ -7,6 +7,8 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -24,11 +26,15 @@ import static ndr.brt.VideoMaker.videoMaker;
 
 public class FullAlbumizer {
 
-    public static void main(String[] args) throws Exception {
-        CommandLineParser parser = new DefaultParser();
-        CommandLine commandLine = parser.parse(new Options(), args);
+    private final static Logger LOG = LoggerFactory.getLogger(FullAlbumizer.class);
 
-        albumize(commandLine.getArgs()[0]);
+    public static void main(String[] args) throws Exception {
+        // CommandLineParser parser = new DefaultParser();
+        // CommandLine commandLine = parser.parse(new Options(), args);
+
+        //albumize(commandLine.getArgs()[0]);
+        albumize("/home/andrea/Music/CRTVTR - 2013 - Here it comes- Tramontane!");
+
     }
 
     private static void albumize(String path) {
@@ -57,7 +63,7 @@ public class FullAlbumizer {
 
         } catch (Exception e) {
             deleteQuietly(videoOutput);
-            System.err.println(e);
+            LOG.error("Exception", e);
         } finally {
             deleteQuietly(audioOutput);
         }
@@ -67,11 +73,11 @@ public class FullAlbumizer {
         try {
             if (file != null) delete(file);
         } catch (Exception e) {
-            System.out.printf("File %s non estente\n", file);
+            LOG.error("File " + file + " not exists", e);
         }
     }
 
-    static String sh(String command) {
+    private static String sh(String command) {
         try (
             InputStream stream = new ProcessBuilder().command(asList("sh", "-c", command)).start().getInputStream();
             InputStreamReader inputReader = new InputStreamReader(stream);

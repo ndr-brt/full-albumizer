@@ -42,7 +42,7 @@ public class VideoMaker {
     public void make(Path output) {
         try {
             Path image = Files.walk(images)
-                    .filter(imageFiles)
+                    .filter(FileType.image)
                     .map(Path::toAbsolutePath)
                     .sorted()
                     .findFirst()
@@ -83,12 +83,4 @@ public class VideoMaker {
                 .divide(valueOf(1000000000))
                 .longValue();
     }
-
-    private static final Predicate<? super Path> imageFiles = path -> {
-        try {
-            return probeContentType(path).startsWith("image");
-        } catch (IOException e) {
-            return false;
-        }
-    };
 }

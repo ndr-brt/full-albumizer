@@ -8,16 +8,19 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.ToLongFunction;
 
 import static java.nio.file.Files.delete;
 import static java.nio.file.Files.probeContentType;
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
+import static ndr.brt.FileType.audio;
 import static ndr.brt.GetSize.getSize;
 
-public class AudioConcatenator {
+class AudioConcatenator {
 
     private static final Function<String, String> escapeQuotes = p -> p.replace("\'", "\'\\\'\'");
     private static final Function<String, String> prepareRow = p -> "file '".concat(p).concat("'");
@@ -33,22 +36,22 @@ public class AudioConcatenator {
         this.executor = executor;
     }
 
-    public AudioConcatenator folder(Path folder) {
+    AudioConcatenator folder(Path folder) {
         this.folder = folder;
         return this;
     }
 
-    public Path concatenate() {
+    Path concatenate() {
         try {
             Path audioOutput = folder.resolve("audioOutput.mp3");
 
-            Long totalSize = Files.walk(folder)
-                    .filter(audioFiles)
+            long totalSize = Files.walk(folder)
+                    .filter(audio)
                     .mapToLong(getSize())
                     .sum();
 
             List<String> songs = Files.walk(folder)
-                    .filter(audioFiles)
+                    .filter(audio)
                     .map(Path::toAbsolutePath)
                     .map(Path::toString)
                     .sorted()
@@ -81,13 +84,5 @@ public class AudioConcatenator {
             throw new RuntimeException(e);
         }
     }
-
-    private static final Predicate<? super Path> audioFiles = path -> {
-        try {
-            return probeContentType(path).startsWith("audio");
-        } catch (IOException e) {
-            return false;
-        }
-    };
 
 }
