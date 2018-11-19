@@ -29,12 +29,10 @@ public class FullAlbumizer {
     private final static Logger LOG = LoggerFactory.getLogger(FullAlbumizer.class);
 
     public static void main(String[] args) throws Exception {
-        // CommandLineParser parser = new DefaultParser();
-        // CommandLine commandLine = parser.parse(new Options(), args);
+        CommandLineParser parser = new DefaultParser();
+        CommandLine commandLine = parser.parse(new Options(), args);
 
-        //albumize(commandLine.getArgs()[0]);
-        albumize("/home/andrea/Music/CRTVTR - 2013 - Here it comes- Tramontane!");
-
+        albumize(commandLine.getArgs()[0]);
     }
 
     private static void albumize(String path) {
