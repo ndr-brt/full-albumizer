@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.ToLongFunction;
+import java.util.function.UnaryOperator;
 
 import static java.nio.file.Files.delete;
 import static java.nio.file.Files.probeContentType;
@@ -22,8 +23,8 @@ import static ndr.brt.GetSize.getSize;
 
 class AudioConcatenator {
 
-    private static final Function<String, String> escapeQuotes = p -> p.replace("\'", "\'\\\'\'");
-    private static final Function<String, String> prepareRow = p -> "file '".concat(p).concat("'");
+    private static final UnaryOperator<String> escapeQuotes = p -> p.replace("\'", "\'\\\'\'");
+    private static final UnaryOperator<String> prepareRow = p -> "file '".concat(p).concat("'");
 
     private final FFmpegExecutor executor;
     private Path folder;
