@@ -44,7 +44,7 @@ class AudioConcatenator {
 
     Path concatenate() {
         try {
-            Path audioOutput = folder.resolve("audioOutput.mp3");
+            Path audioOutput = folder.resolve("audioOutput.wav");
 
             long totalSize = Files.walk(folder)
                     .filter(audio)
