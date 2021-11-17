@@ -5,13 +5,17 @@ import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.NoSuchElementException;
 
 import static java.nio.file.Files.delete;
-import static ndr.brt.VideoMaker.videoMaker;
+import static java.util.stream.Collectors.toList;
+import static ndr.brt.FileType.audio;
+import static ndr.brt.FileType.image;
 
 public class FullAlbumizer {
 
@@ -21,34 +25,33 @@ public class FullAlbumizer {
         var parser = new DefaultParser();
         var commandLine = parser.parse(new Options(), args);
 
-//        albumize(commandLine.getArgs()[0]);
-        albumize("/home/andrea/Music/C/Chubby and the Gang - 2021 - The Mutt's Nuts");
-    }
-
-    private static void albumize(String path) throws NoSuchFileException {
-
-        Path folder = Paths.get(path);
+        Path folder = Paths.get(commandLine.getArgs()[0]);
         if (!Files.exists(folder)) {
             throw new NoSuchFileException("Path '" + folder + "' does not exists");
         }
 
-        var audioConcatenator = new AudioConcatenator(folder);
-        var videoMaker = videoMaker(folder);
-
-        try {
-            var audioOutput = audioConcatenator.concatenate();
-
-            videoMaker.attach(audioOutput);
-
-        } catch (Exception e) {
-            log.error("Exception", e);
-            deleteQuietly(videoMaker.getOutput());
-        } finally {
-            deleteQuietly(audioConcatenator.getOutput());
-        }
+        new FullAlbumizer().createVideo(folder);
     }
 
-    private static void deleteQuietly(Path file) {
+    private void createVideo(Path folder) throws IOException {
+        var audioFiles = Files.walk(folder).filter(audio).collect(toList());
+
+        var audioOutput = Audio.concat(audioFiles);
+
+        var coverImage = Files.walk(folder)
+                .filter(image)
+                .map(Path::toAbsolutePath)
+                .sorted()
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("Folder does not contains any image file"));
+
+        var videoOutput = Video.render(coverImage, audioOutput);
+
+        log.info("Video rendered at " + videoOutput);
+        deleteQuietly(audioOutput);
+    }
+
+    private void deleteQuietly(Path file) {
         try {
             if (file != null) delete(file);
         } catch (Exception e) {
