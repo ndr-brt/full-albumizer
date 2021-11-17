@@ -1,22 +1,21 @@
 package ndr.brt;
 
+import com.github.kokorin.jaffree.LogLevel;
+import com.github.kokorin.jaffree.ffmpeg.FFmpeg;
+import com.github.kokorin.jaffree.ffmpeg.OutputListener;
+import com.github.kokorin.jaffree.ffmpeg.UrlInput;
+import com.github.kokorin.jaffree.ffmpeg.UrlOutput;
 import me.tongfei.progressbar.ProgressBar;
-import net.bramp.ffmpeg.FFmpegExecutor;
-import net.bramp.ffmpeg.builder.FFmpegBuilder;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.ToLongFunction;
 import java.util.function.UnaryOperator;
 
 import static java.nio.file.Files.delete;
-import static java.nio.file.Files.probeContentType;
-import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static ndr.brt.FileType.audio;
 import static ndr.brt.GetSize.getSize;
@@ -26,26 +25,16 @@ class AudioConcatenator {
     private static final UnaryOperator<String> escapeQuotes = p -> p.replace("\'", "\'\\\'\'");
     private static final UnaryOperator<String> prepareRow = p -> "file '".concat(p).concat("'");
 
-    private final FFmpegExecutor executor;
-    private Path folder;
+    private final Path folder;
+    private final Path audioOutput;
 
-    static AudioConcatenator audioConcatenator(FFmpegExecutor executor) {
-        return new AudioConcatenator(executor);
-    }
-
-    private AudioConcatenator(FFmpegExecutor executor) {
-        this.executor = executor;
-    }
-
-    AudioConcatenator folder(Path folder) {
+    public AudioConcatenator(Path folder) {
         this.folder = folder;
-        return this;
+        this.audioOutput = folder.resolve("audioOutput.wav");
     }
 
     Path concatenate() {
         try {
-            Path audioOutput = folder.resolve("audioOutput.wav");
-
             long totalSize = Files.walk(folder)
                     .filter(audio)
                     .mapToLong(getSize())
@@ -61,29 +50,35 @@ class AudioConcatenator {
                     .collect(toList());
 
             Path songsFile = folder.resolve("songs");
-            Files.write(songsFile, songs);
-
-            FFmpegBuilder concatAudio = new FFmpegBuilder()
-                    .addExtraArgs("-loglevel", "panic")
-                    .addExtraArgs("-f", "concat")
-                    .addExtraArgs("-safe", "0")
-                    .addInput(songsFile.toString())
-                    .addOutput(audioOutput.toString())
-                    .addExtraArgs("-c", "copy")
-                    .done();
+            Files.write(songsFile, songs, StandardCharsets.UTF_8);
 
             try (ProgressBar progress = new ProgressBar("Audio concatenation", totalSize)) {
-                executor.createJob(concatAudio, p -> progress.stepTo(p.total_size)).run();
+                UrlInput input = UrlInput.fromPath(songsFile)
+                        .addArguments("-f", "concat")
+                        .addArguments("-safe", "0");
+
+                FFmpeg.atPath()
+                        .setLogLevel(LogLevel.ERROR)
+                        .addInput(input)
+                        .addArguments("-c", "copy")
+                        .addOutput(UrlOutput.toPath(audioOutput))
+                        .setProgressListener(p -> progress.stepTo(p.getSize()))
+                        .setOverwriteOutput(true)
+                        .execute();
+
                 progress.stepTo(totalSize);
             }
 
             delete(songsFile);
 
-            return audioOutput;
+            return getOutput();
 
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
+    public Path getOutput() {
+        return audioOutput;
+    }
 }
